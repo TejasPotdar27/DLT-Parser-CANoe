@@ -1,3 +1,4 @@
+![Language: CAPL](https://img.shields.io/badge/language-CAPL-blue)
 # DLT-Parser-CANoe_capl
 DLT Parser CAPL Script for CANoe (Vector VT System), Parses DLT frames from Ethernet and exposes keyword hits via sysvars for automation/testing.
 

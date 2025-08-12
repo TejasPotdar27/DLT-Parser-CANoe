@@ -13,7 +13,7 @@ This repository contains CAPL scripts for:
 
 ### Overview
 
-This CAPL script is designed to automate the process of detecting and verifying specific DLT (Diagnostic Log and Trace) messages transmitted via Ethernet in automotive ECUs. It enables rapid automation and validation of logging events for HIL/SIL setups using Vector CANoe and the VT system.
+This CAPL script is designed to smartly automate the process of detecting and verifying specific DLT (Diagnostic Log and Trace) messages transmitted via Ethernet in automotive ECUs. It enables rapid automation and validation of logging events for HIL/SIL setups using Vector CANoe and the VT system.
 
 ### Workflow
 

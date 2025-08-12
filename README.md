@@ -1,4 +1,4 @@
-# DLT-Parser-CANoe
+# DLT-Parser-CANoe_capl
 DLT Parser CAPL Script for CANoe (Vector VT System), Parses DLT frames from Ethernet and exposes keyword hits via sysvars for automation/testing.
 
 # DLT Frame Parser & Automation Testing for Vector VT System (CANoe CAPL)

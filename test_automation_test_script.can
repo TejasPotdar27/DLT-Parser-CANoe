@@ -1,0 +1,20 @@
+// Example: Automation test script for DLT keyword occurrence logging
+// Place your specific automation test logic here
+
+includes {}
+
+on start
+{
+  write("Automation Test Script Started");
+}
+
+on sysvar::Verbose_Keyword1::IsAvailable
+{
+  if (@this == 1)
+  {
+    write("Keyword1 detected at time: %f", @sysvar::Verbose_Keyword1::OccurenceTime);
+    // Place your automated result check or logging here or value assignments to other variables - sysvar or CAN message
+  }
+}
+
+// Add more automated test steps as needed

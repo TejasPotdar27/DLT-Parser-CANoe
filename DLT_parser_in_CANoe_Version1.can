@@ -1,0 +1,165 @@
+/*@!Encoding:65001*/
+
+// DLT Parser CAPL Script for CANoe (Vector VT System)
+// Author: Tejas Potdar
+// Description: Parses DLT frames from Ethernet and exposes keyword hits via sysvars for automation/testing. 
+// License: MIT
+
+includes
+{
+  
+}
+
+variables
+{  
+  ////////// DLT parsing variables //////////
+  char keystring[2][500], tmp[2000], out[2000];
+  char frameData[2000];
+  char asciiData[2000], Extracted_after_recv[30];
+  int currentTracker[2] = {0};
+  int i, j, primaryIndex, recvIndex, commaIndex, temp, z, g, extractedIndex, frame1Length=0, adjustedIndex;
+  int keywordLength;
+  int searchStartIndex;
+  int dataLength, currentByteLength=0, frameID=1;
+  char frame1[5000], frame2[5000], searchBuffer[15000], finalbuffer[5000];
+  dword len=5;
+  byte frame2_hex[5000], frame1_hex[5000], FinalHex[3000], currentHex[1500], Empty[3000];
+
+  int hi, hj, hq, hk, hs;
+  byte frameData_hex[2000], searchBuffer_hex[10000];
+  byte zeroArray[10000] = {0};  
+}
+
+on sysvar IG_ON
+{
+  if(@this==1)
+  {
+    @sysvar::Verbose_Keyword1::IsAvailable = 0;
+    @sysvar::Verbose_Keyword1::OccurenceTime = 0.00;
+    @sysvar::Verbose_Keyword2::IsAvailable = 0;
+    @sysvar::Verbose_Keyword2::OccurenceTime = 0.00;
+
+    j=0;
+    frame1[0] = '\0';
+    frame2[0] = '\0';
+  }
+}
+
+on start
+{
+   // write("Start Ethernet Packet Monitoring for DLT");
+
+  @sysvar::Verbose_Keyword1::IsAvailable = 0;
+  @sysvar::Verbose_Keyword1::OccurenceTime = 0.00;
+  @sysvar::Verbose_Keyword2::IsAvailable = 0;
+  @sysvar::Verbose_Keyword2::OccurenceTime = 0.00;
+
+  j=0;
+  frame1[0] = '\0';
+  frame2[0] = '\0';
+}
+
+on ethernetPacket ethernetPort::DLT_PARSING::DIAG_DLT.*
+{
+  ethernetPacket newPacket, newpacket;
+  byte IP[4];
+  long checkPresence;
+  double checktime;
+  ip_Address 10.12.255.1 ECUDLT;
+  ip_Address SourceIPv4DLT;
+  byte TPleng[1500];
+  ip_Endpoint endpoint;
+  byte originalFrame[1500];
+  byte ExtractedHexBytes, ExtractedHexBytes2;
+
+  ////////////////////////////////////////////////////DLT parsing Logic for frames starts////////////////////////////////////////
+  if (this.tcp.IsAvailable() )
+  {
+    if(this.tcp.source==3490 && this.tcp.byteLength>0 )
+    {
+      this.GetSourceIPAddress(SourceIPv4DLT);
+
+      if (SourceIPv4DLT==ECUDLT)
+      {
+        for (j = 0; j < this.tcp.byteLength; j++)
+        {
+          frameData[j] = this.tcp.byte(j);
+          frameData_hex[j]= this.tcp.byte(j);
+
+          if (frameData[j] >= 32 && frameData[j] <= 126)
+          {
+            asciiData[j] = frameData[j];
+          }
+          else
+          {
+            asciiData[j] = '.';
+          }
+        }
+        asciiData[this.tcp.byteLength] = '\0';
+
+        strncpy(frame1, frame2, elcount(frame1)-1);
+        frame1[elcount(frame1) - 1] = '\0';
+        strncpy(frame2, asciiData, elcount(frame2)-1);
+        frame2[elcount(frame2) - 1] = '\0';
+
+        searchBuffer[0] = '\0';
+        strncpy(searchBuffer, frame1, elcount(searchBuffer)-1);
+        strncat(searchBuffer, frame2, elcount(searchBuffer) - strlen(searchBuffer) - 1);
+        searchBuffer[elcount(searchBuffer) - 1] = '\0';
+
+        memcpy(frame1_hex, zeroArray,elcount(frame1_hex));
+        memcpy(frame1_hex, frame2_hex,elcount(frame1_hex));
+        memcpy(frame2_hex, zeroArray,elcount(frame2_hex));
+        memcpy(frame2_hex, frameData_hex,elcount(frameData_hex));
+
+        for (hq = 0; hq < elcount(frame1_hex); hq++)
+        {
+            searchBuffer_hex[hq] = frame1_hex[hq];
+        }
+        for (hk = 0; hk < elcount(frame2_hex); hk++)
+        {
+            searchBuffer_hex[elcount(frame1_hex) + hk] = frame2_hex[hk];
+        }
+
+        // Get keywords from sysvars
+        sysGetVariableString(sysvar::Verbose_Keyword1::Value, keystring[0], elcount(keystring[0]));
+        sysGetVariableString(sysvar::Verbose_Keyword2::Value, keystring[1], elcount(keystring[1]));
+
+        // ASCII text search for 2 primary keywords
+        for (i = 0; i < 2; i++)
+        {
+          currentTracker[i] = 0;
+          if (keystring[i][0] != '\0')
+          {
+            substr_cpy(finalbuffer, searchBuffer, 0, strlen(frame1)+(strlen(keystring[i])-1),5000);
+            primaryIndex = strstr(finalbuffer, keystring[i]);
+            if (primaryIndex!= -1)
+            {
+              currentTracker[i] = 1;
+              write("[DLT_parser]Detected String: %s at time %f secs",keystring[i],timeNowNS()*1.0000E-9);
+
+              if (i == 0)
+              {
+                checkPresence = currentTracker[i];
+                checktime = (timeNowNS()*1.0000E-9);
+                @sysvar::Verbose_Keyword1::IsAvailable = 0;
+                @sysvar::Verbose_Keyword1::IsAvailable = checkPresence;
+                @sysvar::Verbose_Keyword1::OccurenceTime = checktime;
+                write("1. IsAvailable %d at OccurenceTime of %f",@sysvar::Verbose_Keyword1::IsAvailable,@sysvar::Verbose_Keyword1::OccurenceTime);
+              }
+              else if (i == 1)
+              {
+                checkPresence = currentTracker[i];
+                checktime = (timeNowNS()*1.0000E-9);
+                @sysvar::Verbose_Keyword2::IsAvailable = 0;
+                @sysvar::Verbose_Keyword2::IsAvailable = checkPresence;
+                @sysvar::Verbose_Keyword2::OccurenceTime = checktime;
+                write("2. IsAvailable %d at OccurenceTime of %f",checkPresence,checktime);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
